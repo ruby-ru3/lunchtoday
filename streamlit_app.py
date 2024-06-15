@@ -1,6 +1,3 @@
-!pip install streamlit transformers
-!npm install -g localtunnel
-
 %%writefile app.py
 import streamlit as st
 import random
@@ -129,5 +126,3 @@ if st.button("추천받기"):
         st.error(f"추천 과정에서 문제가 발생했습니다. 잠시 후 다시 시도해주세요. 오류: {e}")
 
 st.write("언제든지 도움이 필요하시면 말씀해주세요! 좋은 하루 되세요! 😊")
-
-!streamlit run app.py & npx localtunnel --port 8501
