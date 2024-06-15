@@ -29,7 +29,7 @@ weather_menus = {
 }
 
 # Streamlit 앱
-st.title("오늘의 점심 메뉴 추천봇 😊")
+st.title("오늘의 점심 추천봇 😊")
 
 # 사용자가 입장했을 때 인사
 st.write("안녕하세요! 오늘 점심 메뉴를 추천해드리겠습니다. 무엇을 도와드릴까요? 😊")
@@ -111,7 +111,7 @@ filtered_menus = get_filtered_menus()
 def recommend_menu(menus):
     if menus:
         recommendations = random.sample(menus, min(3, len(menus)))
-        prompt = f"추천 점심 메뉴: {', '.join(recommendations)}\n 이 메뉴는 어떠세요? 마음에 드는 점심을 골라 보세요! 😊"
+        prompt = f"추천 점심 메뉴: {', '.join(recommendations)}! 이 메뉴는 어떠세요? 마음에 드는 점심을 골라 보세요! 😊"
         return prompt
     else:
         return "추천할 메뉴가 없네요. 다른 카테고리를 선택해보세요!"
@@ -124,4 +124,4 @@ if st.button("추천받기"):
     except Exception as e:
         st.error(f"추천 과정에서 문제가 발생했습니다. 잠시 후 다시 시도해주세요. 오류: {e}")
 
-st.write("언제든지 도움이 필요하시면 말씀해주세요! 좋은 하루 되세요! 😊")
+st.write("언제든지 메뉴를 골라 드려요! 오늘도 좋은 하루 되세요! 😊")
