@@ -1,249 +1,133 @@
+!pip install streamlit transformers
+!npm install -g localtunnel
+
+%%writefile app.py
 import streamlit as st
-import pandas as pd
-import numpy as np
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_squared_error, r2_score
-import altair as alt
-import time
-import zipfile
+import random
+from transformers import pipeline
 
-# Page title
-st.set_page_config(page_title='ML Model Building', page_icon='🤖')
-st.title('🤖 ML Model Building')
+# GPT-2 모델 로드
+@st.cache_resource
+def load_model():
+    return pipeline('text-generation', model='gpt2')
 
-with st.expander('About this app'):
-  st.markdown('**What can this app do?**')
-  st.info('This app allow users to build a machine learning (ML) model in an end-to-end workflow. Particularly, this encompasses data upload, data pre-processing, ML model building and post-model analysis.')
+menu_generator = load_model()
 
-  st.markdown('**How to use the app?**')
-  st.warning('To engage with the app, go to the sidebar and 1. Select a data set and 2. Adjust the model parameters by adjusting the various slider widgets. As a result, this would initiate the ML model building process, display the model results as well as allowing users to download the generated models and accompanying data.')
+# 메뉴 카테고리
+menu_categories = {
+    "한식": ["비빔밥", "불고기", "김치찌개", "된장찌개", "순두부찌개", "칼국수", "해장국", "부대찌개", "쌈밥", "잡채", "갈비탕", "삼계탕", "수육", "제육볶음", "감자탕"],
+    "양식": ["피자", "햄버거", "스파게티", "스테이크", "샐러드", "리조또", "파스타", "치킨윙", "그라탱", "오믈렛", "로스트 치킨", "클럽 샌드위치", "페투치니", "치즈버거", "프렌치 토스트"],
+    "중식": ["짜장면", "짬뽕", "탕수육", "마파두부", "볶음밥", "고추잡채", "깐풍기", "꿔바로우", "양장피", "북경오리", "차돌짬뽕", "멘보샤", "팔보채", "유린기", "게살볶음밥", "마라탕"],
+    "일식": ["초밥", "라멘", "덴푸라", "카츠동", "우동", "오코노미야키", "타코야키", "카레라이스", "규동", "돈카츠", "냉소바", "스키야키", "야키니쿠", "오야코동", "사케동"],
+    "분식": ["떡볶이", "김밥", "라면", "순대", "어묵탕", "돈가스", "붕어빵", "호떡", "핫도그", "쫄면", "떡꼬치", "순대볶음", "소떡소떡", "만두"],
+    "간편식": ["샌드위치", "컵라면", "도시락", "핫도그", "토스트", "베이글", "시리얼", "크로와상", "머핀", "그래놀라 바", "스콘", "치킨너겟", "미트볼", "핫케이크"]
+}
 
-  st.markdown('**Under the hood**')
-  st.markdown('Data sets:')
-  st.code('''- Drug solubility data set
-  ''', language='markdown')
-  
-  st.markdown('Libraries used:')
-  st.code('''- Pandas for data wrangling
-- Scikit-learn for building a machine learning model
-- Altair for chart creation
-- Streamlit for user interface
-  ''', language='markdown')
+# 날씨 기반 추천 메뉴
+weather_menus = {
+    "맑음": ["샐러드", "초밥", "샌드위치", "아이스크림", "생과일주스", "그릭 요거트", "카프레제", "냉파스타", "아보카도 토스트", "아이스티"],
+    "비": ["파전", "수제비", "김치전", "칼국수", "뜨거운 커피", "부침개", "떡국", "김치수제비", "우동", "비빔국수", "김치볶음밥", "감자전", "배추전", "어묵탕"],
+    "눈": ["호빵", "어묵", "고구마", "호떡", "온국수", "따뜻한 코코아", "팥죽", "순두부찌개", "닭곰탕", "갈비탕", "전골", "누룽지탕", "설렁탕", "군밤", "라떼"],
+    "더움": ["냉면", "빙수", "콩국수", "과일빙수", "아이스커피", "냉국", "냉모밀", "냉우동", "아이스크림", "수박", "토마토 냉국", "레몬에이드", "아이스초코", "망고빙수", "과일주스"],
+    "추움": ["뜨거운 라면", "국밥", "순대국", "감자탕", "만두", "전골", "곰탕", "삼계탕", "설렁탕", "불고기전골", "차돌된장찌개", "육개장", "칼국수", "된장찌개", "사골국"]
+}
 
+# Streamlit 앱
+st.title("오늘의 점심 메뉴 추천봇 😊")
 
-# Sidebar for accepting input parameters
-with st.sidebar:
-    # Load data
-    st.header('1.1. Input data')
+# 사용자가 입장했을 때 인사
+st.write("안녕하세요! 오늘 점심 메뉴를 추천해드리겠습니다. 무엇을 도와드릴까요? 😊")
 
-    st.markdown('**1. Use custom data**')
-    uploaded_file = st.file_uploader("Upload a CSV file", type=["csv"])
-    if uploaded_file is not None:
-        df = pd.read_csv(uploaded_file, index_col=False)
-      
-    # Download example data
-    @st.cache_data
-    def convert_df(input_df):
-        return input_df.to_csv(index=False).encode('utf-8')
-    example_csv = pd.read_csv('https://raw.githubusercontent.com/dataprofessor/data/master/delaney_solubility_with_descriptors.csv')
-    csv = convert_df(example_csv)
-    st.download_button(
-        label="Download example CSV",
-        data=csv,
-        file_name='delaney_solubility_with_descriptors.csv',
-        mime='text/csv',
-    )
+# 사용자 입력 저장 및 복원
+if "preferred_category" not in st.session_state:
+    st.session_state.preferred_category = "상관없음"
 
-    # Select example data
-    st.markdown('**1.2. Use example data**')
-    example_data = st.toggle('Load example data')
-    if example_data:
-        df = pd.read_csv('https://raw.githubusercontent.com/dataprofessor/data/master/delaney_solubility_with_descriptors.csv')
+if "disliked_category" not in st.session_state:
+    st.session_state.disliked_category = "상관없음"
 
-    st.header('2. Set Parameters')
-    parameter_split_size = st.slider('Data split ratio (% for Training Set)', 10, 90, 80, 5)
+if "previous_meal" not in st.session_state:
+    st.session_state.previous_meal = ""
 
-    st.subheader('2.1. Learning Parameters')
-    with st.expander('See parameters'):
-        parameter_n_estimators = st.slider('Number of estimators (n_estimators)', 0, 1000, 100, 100)
-        parameter_max_features = st.select_slider('Max features (max_features)', options=['all', 'sqrt', 'log2'])
-        parameter_min_samples_split = st.slider('Minimum number of samples required to split an internal node (min_samples_split)', 2, 10, 2, 1)
-        parameter_min_samples_leaf = st.slider('Minimum number of samples required to be at a leaf node (min_samples_leaf)', 1, 10, 2, 1)
+if "weather" not in st.session_state:
+    st.session_state.weather = "상관없음"
 
-    st.subheader('2.2. General Parameters')
-    with st.expander('See parameters', expanded=False):
-        parameter_random_state = st.slider('Seed number (random_state)', 0, 1000, 42, 1)
-        parameter_criterion = st.select_slider('Performance measure (criterion)', options=['squared_error', 'absolute_error', 'friedman_mse'])
-        parameter_bootstrap = st.select_slider('Bootstrap samples when building trees (bootstrap)', options=[True, False])
-        parameter_oob_score = st.select_slider('Whether to use out-of-bag samples to estimate the R^2 on unseen data (oob_score)', options=[False, True])
+preferred_category = st.selectbox(
+    "원하는 음식 분야를 선택해주세요:",
+    ["상관없음", "한식", "양식", "중식", "일식", "분식", "간편식"],
+    index=["상관없음", "한식", "양식", "중식", "일식", "분식", "간편식"].index(st.session_state.preferred_category),
+    help="선호하는 음식 분야를 선택해주세요."
+)
+st.session_state.preferred_category = preferred_category
 
-    sleep_time = st.slider('Sleep time', 0, 3, 0)
+disliked_category = st.selectbox(
+    "싫어하는 음식 분야가 있나요?",
+    ["상관없음", "한식", "양식", "중식", "일식", "분식", "간편식"],
+    index=["상관없음", "한식", "양식", "중식", "일식", "분식", "간편식"].index(st.session_state.disliked_category),
+    help="싫어하는 음식 분야가 있다면 선택해주세요."
+)
+st.session_state.disliked_category = disliked_category
 
-# Initiate the model building process
-if uploaded_file or example_data: 
-    with st.status("Running ...", expanded=True) as status:
-    
-        st.write("Loading data ...")
-        time.sleep(sleep_time)
+previous_meal = st.text_input(
+    "오늘 드신 식사를 알려주세요:",
+    value=st.session_state.previous_meal,
+    help="오늘 이미 드신 음식을 입력해주세요."
+)
+st.session_state.previous_meal = previous_meal
 
-        st.write("Preparing data ...")
-        time.sleep(sleep_time)
-        X = df.iloc[:,:-1]
-        y = df.iloc[:,-1]
-            
-        st.write("Splitting data ...")
-        time.sleep(sleep_time)
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=(100-parameter_split_size)/100, random_state=parameter_random_state)
-    
-        st.write("Model training ...")
-        time.sleep(sleep_time)
+exclude_previous_meal = st.checkbox(
+    "이전 식사를 제외하고 추천받기 원하시나요?",
+    help="오늘 이미 드신 음식을 제외하고 추천을 받으시려면 체크해주세요."
+)
 
-        if parameter_max_features == 'all':
-            parameter_max_features = None
-            parameter_max_features_metric = X.shape[1]
-        
-        rf = RandomForestRegressor(
-                n_estimators=parameter_n_estimators,
-                max_features=parameter_max_features,
-                min_samples_split=parameter_min_samples_split,
-                min_samples_leaf=parameter_min_samples_leaf,
-                random_state=parameter_random_state,
-                criterion=parameter_criterion,
-                bootstrap=parameter_bootstrap,
-                oob_score=parameter_oob_score)
-        rf.fit(X_train, y_train)
-        
-        st.write("Applying model to make predictions ...")
-        time.sleep(sleep_time)
-        y_train_pred = rf.predict(X_train)
-        y_test_pred = rf.predict(X_test)
-            
-        st.write("Evaluating performance metrics ...")
-        time.sleep(sleep_time)
-        train_mse = mean_squared_error(y_train, y_train_pred)
-        train_r2 = r2_score(y_train, y_train_pred)
-        test_mse = mean_squared_error(y_test, y_test_pred)
-        test_r2 = r2_score(y_test, y_test_pred)
-        
-        st.write("Displaying performance metrics ...")
-        time.sleep(sleep_time)
-        parameter_criterion_string = ' '.join([x.capitalize() for x in parameter_criterion.split('_')])
-        #if 'Mse' in parameter_criterion_string:
-        #    parameter_criterion_string = parameter_criterion_string.replace('Mse', 'MSE')
-        rf_results = pd.DataFrame(['Random forest', train_mse, train_r2, test_mse, test_r2]).transpose()
-        rf_results.columns = ['Method', f'Training {parameter_criterion_string}', 'Training R2', f'Test {parameter_criterion_string}', 'Test R2']
-        # Convert objects to numerics
-        for col in rf_results.columns:
-            rf_results[col] = pd.to_numeric(rf_results[col], errors='ignore')
-        # Round to 3 digits
-        rf_results = rf_results.round(3)
-        
-    status.update(label="Status", state="complete", expanded=False)
+weather = st.selectbox(
+    "현재 날씨는 어떤가요?",
+    ["상관없음", "맑음", "비", "눈", "더움", "추움"],
+    index=["상관없음", "맑음", "비", "눈", "더움", "추움"].index(st.session_state.weather),
+    help="현재 날씨를 선택해주세요."
+)
+st.session_state.weather = weather
 
-    # Display data info
-    st.header('Input data', divider='rainbow')
-    col = st.columns(4)
-    col[0].metric(label="No. of samples", value=X.shape[0], delta="")
-    col[1].metric(label="No. of X variables", value=X.shape[1], delta="")
-    col[2].metric(label="No. of Training samples", value=X_train.shape[0], delta="")
-    col[3].metric(label="No. of Test samples", value=X_test.shape[0], delta="")
-    
-    with st.expander('Initial dataset', expanded=True):
-        st.dataframe(df, height=210, use_container_width=True)
-    with st.expander('Train split', expanded=False):
-        train_col = st.columns((3,1))
-        with train_col[0]:
-            st.markdown('**X**')
-            st.dataframe(X_train, height=210, hide_index=True, use_container_width=True)
-        with train_col[1]:
-            st.markdown('**y**')
-            st.dataframe(y_train, height=210, hide_index=True, use_container_width=True)
-    with st.expander('Test split', expanded=False):
-        test_col = st.columns((3,1))
-        with test_col[0]:
-            st.markdown('**X**')
-            st.dataframe(X_test, height=210, hide_index=True, use_container_width=True)
-        with test_col[1]:
-            st.markdown('**y**')
-            st.dataframe(y_test, height=210, hide_index=True, use_container_width=True)
+# 필터링된 메뉴 리스트 가져오기
+def get_filtered_menus():
+    menus = []
 
-    # Zip dataset files
-    df.to_csv('dataset.csv', index=False)
-    X_train.to_csv('X_train.csv', index=False)
-    y_train.to_csv('y_train.csv', index=False)
-    X_test.to_csv('X_test.csv', index=False)
-    y_test.to_csv('y_test.csv', index=False)
-    
-    list_files = ['dataset.csv', 'X_train.csv', 'y_train.csv', 'X_test.csv', 'y_test.csv']
-    with zipfile.ZipFile('dataset.zip', 'w') as zipF:
-        for file in list_files:
-            zipF.write(file, compress_type=zipfile.ZIP_DEFLATED)
+    if st.session_state.preferred_category != "상관없음":
+        menus.extend(menu_categories.get(st.session_state.preferred_category, []))
+    else:
+        for category in menu_categories.values():
+            menus.extend(category)
 
-    with open('dataset.zip', 'rb') as datazip:
-        btn = st.download_button(
-                label='Download ZIP',
-                data=datazip,
-                file_name="dataset.zip",
-                mime="application/octet-stream"
-                )
-    
-    # Display model parameters
-    st.header('Model parameters', divider='rainbow')
-    parameters_col = st.columns(3)
-    parameters_col[0].metric(label="Data split ratio (% for Training Set)", value=parameter_split_size, delta="")
-    parameters_col[1].metric(label="Number of estimators (n_estimators)", value=parameter_n_estimators, delta="")
-    parameters_col[2].metric(label="Max features (max_features)", value=parameter_max_features_metric, delta="")
-    
-    # Display feature importance plot
-    importances = rf.feature_importances_
-    feature_names = list(X.columns)
-    forest_importances = pd.Series(importances, index=feature_names)
-    df_importance = forest_importances.reset_index().rename(columns={'index': 'feature', 0: 'value'})
-    
-    bars = alt.Chart(df_importance).mark_bar(size=40).encode(
-             x='value:Q',
-             y=alt.Y('feature:N', sort='-x')
-           ).properties(height=250)
+    if st.session_state.disliked_category != "상관없음":
+        menus = [menu for menu in menus if menu not in menu_categories.get(st.session_state.disliked_category, [])]
 
-    performance_col = st.columns((2, 0.2, 3))
-    with performance_col[0]:
-        st.header('Model performance', divider='rainbow')
-        st.dataframe(rf_results.T.reset_index().rename(columns={'index': 'Parameter', 0: 'Value'}))
-    with performance_col[2]:
-        st.header('Feature importance', divider='rainbow')
-        st.altair_chart(bars, theme='streamlit', use_container_width=True)
+    if exclude_previous_meal and st.session_state.previous_meal:
+        menus = [menu for menu in menus if st.session_state.previous_meal not in menu]
 
-    # Prediction results
-    st.header('Prediction results', divider='rainbow')
-    s_y_train = pd.Series(y_train, name='actual').reset_index(drop=True)
-    s_y_train_pred = pd.Series(y_train_pred, name='predicted').reset_index(drop=True)
-    df_train = pd.DataFrame(data=[s_y_train, s_y_train_pred], index=None).T
-    df_train['class'] = 'train'
-        
-    s_y_test = pd.Series(y_test, name='actual').reset_index(drop=True)
-    s_y_test_pred = pd.Series(y_test_pred, name='predicted').reset_index(drop=True)
-    df_test = pd.DataFrame(data=[s_y_test, s_y_test_pred], index=None).T
-    df_test['class'] = 'test'
-    
-    df_prediction = pd.concat([df_train, df_test], axis=0)
-    
-    prediction_col = st.columns((2, 0.2, 3))
-    
-    # Display dataframe
-    with prediction_col[0]:
-        st.dataframe(df_prediction, height=320, use_container_width=True)
+    if st.session_state.weather != "상관없음":
+        menus += weather_menus.get(st.session_state.weather, [])
 
-    # Display scatter plot of actual vs predicted values
-    with prediction_col[2]:
-        scatter = alt.Chart(df_prediction).mark_circle(size=60).encode(
-                        x='actual',
-                        y='predicted',
-                        color='class'
-                  )
-        st.altair_chart(scatter, theme='streamlit', use_container_width=True)
+    # 중복 제거
+    return list(set(menus))
 
-    
-# Ask for CSV upload if none is detected
-else:
-    st.warning('👈 Upload a CSV file or click *"Load example data"* to get started!')
+filtered_menus = get_filtered_menus()
+
+# 메뉴 추천 함수
+def recommend_menu(menus):
+    if menus:
+        recommendations = random.sample(menus, min(3, len(menus)))
+        prompt = f"추천 점심 메뉴: {', '.join(recommendations)}\n 이 메뉴는 어떠세요? 마음에 드는 점심을 골라 보세요! 😊"
+        return prompt
+    else:
+        return "추천할 메뉴가 없네요. 다른 카테고리를 선택해보세요!"
+
+# 추천 메뉴 출력
+if st.button("추천받기"):
+    try:
+        recommendation = recommend_menu(filtered_menus)
+        st.write(recommendation)
+    except Exception as e:
+        st.error(f"추천 과정에서 문제가 발생했습니다. 잠시 후 다시 시도해주세요. 오류: {e}")
+
+st.write("언제든지 도움이 필요하시면 말씀해주세요! 좋은 하루 되세요! 😊")
+
+!streamlit run app.py & npx localtunnel --port 8501
