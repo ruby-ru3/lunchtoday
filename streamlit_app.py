@@ -1,7 +1,7 @@
 import streamlit as st
 import random
 from transformers import pipeline
-import wikipediaapi
+import wikipedia
 
 # GPT-2 모델 로드
 @st.cache_resource
@@ -10,8 +10,8 @@ def load_model():
 
 menu_generator = load_model()
 
-# Wikipedia API 설정
-wiki = wikipediaapi.Wikipedia('ko')
+# Wikipedia 설정
+wikipedia.set_lang("ko")
 
 # 메뉴 카테고리
 menu_categories = {
@@ -121,18 +121,21 @@ def recommend_menu(menus):
 
 # 위키백과에서 음식 설명 가져오기
 def get_wikipedia_summary(food):
-    page = wiki.page(food)
-    if page.exists():
-        return page.summary[0:500]  # 500자까지 요약
-    else:
-        return "해당 음식에 대한 정보를 찾을 수 없습니다."
+    try:
+        summary = wikipedia.summary(food, sentences=2)
+        return summary
+    except wikipedia.exceptions.DisambiguationError as e:
+        return f"해당 항목에 대한 여러 설명이 있습니다: {e.options}"
+    except wikipedia.exceptions.PageError:
+        return "해당 항목에 대한 설명을 찾을 수 없습니다."
 
 # 추천 메뉴 출력
 if st.button("추천받기"):
     try:
         recommendations = recommend_menu(filtered_menus)
         if recommendations:
-            st.write(f"추천 점심 메뉴: {', '.join(recommendations)}!\n이 메뉴는 어떠세요? 마음에 드는 점심을 골라 보세요! 😊")
+            st.write(f"추천 점심 메뉴: {', '.join(recommendations)}!")
+            st.write("이 메뉴는 어떠세요? 마음에 드는 점심을 골라 보세요! 😊")
             for food in recommendations:
                 summary = get_wikipedia_summary(food)
                 st.write(f"**{food}**는 {summary}입니다.")
