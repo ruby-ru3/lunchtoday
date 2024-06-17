@@ -112,8 +112,9 @@ def recommend_menu(menus):
     if menus:
         recommendations = random.sample(menus, min(3, len(menus)))
         prompt = f"추천 점심 메뉴: {', '.join(recommendations)}!\n 이 메뉴는 어떠세요? 마음에 드는 점심을 골라 보세요! 😊"
-        response = menu_generator(prompt)[0]['generated_text']
-        return f"{prompt}\n\n{response.replace(prompt, '')}"
+        #response = menu_generator(prompt)[0]['generated_text']
+        #return f"{prompt}\n\n{response.replace(prompt, '')}"
+        return prompt
     else:
         return "추천할 메뉴가 없네요. 다른 카테고리를 선택해보세요!"
 
