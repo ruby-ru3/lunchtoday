@@ -120,8 +120,10 @@ def generate_menu_description(recommendations):
     descriptions = []
     for menu in recommendations:
         prompt = f"{menu}는 어떤 음식인가요?"
-        response = menu_generator(prompt, max_length=50, num_return_sequences=1)
+        response = menu_generator(prompt, max_length=50, num_return_sequences=1, pad_token_id=50256)
         description = response[0]['generated_text']
+        # 메뉴 이름 이후의 불필요한 텍스트 제거
+        description = description.replace(menu, "").strip()
         descriptions.append(description)
     return descriptions
 
@@ -131,8 +133,10 @@ if st.button("추천받기"):
         recommendations = recommend_menu(filtered_menus)
         if recommendations:
             descriptions = generate_menu_description(recommendations)
-            for desc in descriptions:
-                st.write(desc)
+            st.write(f"점심 추천 메뉴: {', '.join(recommendations)}!")
+            st.write("이런 점심 메뉴는 어떠세요? 마음에 드는 점심을 골라보세요! 😊")
+            for menu, description in zip(recommendations, descriptions):
+                st.write(f"{menu}는 {description}입니다.")
         else:
             st.write("추천할 메뉴가 없네요. 다른 카테고리를 선택해보세요!")
     except Exception as e:
