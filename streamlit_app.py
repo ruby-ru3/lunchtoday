@@ -107,7 +107,7 @@ def get_filtered_menus():
 
 filtered_menus = get_filtered_menus()
 
-# 메뉴 추천 함수
+# 메뉴 추천 함수 수정
 def recommend_menu(menus):
     if menus:
         recommendations = random.sample(menus, min(3, len(menus)))
