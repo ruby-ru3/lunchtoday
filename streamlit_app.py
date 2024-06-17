@@ -111,11 +111,18 @@ filtered_menus = get_filtered_menus()
 def recommend_menu(menus):
     if menus:
         recommendations = random.sample(menus, min(3, len(menus)))
-        prompt = f"추천 점심 메뉴: {', '.join(recommendations)}!\n 이 메뉴는 어떠세요? 마음에 드는 점심을 골라 보세요! 😊"
-        response = menu_generator(prompt, max_length=300)[0]['generated_text']
+        menu_list = ', '.join(recommendations)
+        prompt = f"추천 점심 메뉴: {menu_list}!\n각 메뉴에 대해 간단히 설명해주세요."
+        
+        response = menu_generator(prompt, max_length=100)[0]['generated_text']
         generated_sentence = response.replace(prompt, '').strip()
-        filtered_sentence = next((sentence.strip() for sentence in generated_sentence.split('.') if any(menu in sentence for menu in recommendations)), "")
-        return f"{prompt}\n\n{filtered_sentence}"
+        
+        # 추천된 메뉴와 관련된 문장을 필터링하여 반환
+        filtered_sentences = [sentence.strip() for sentence in generated_sentence.split('.') if any(menu in sentence for menu in recommendations)]
+        
+        # 최종 출력 내용 구성
+        explanation = ' '.join(filtered_sentences)
+        return f"추천 점심 메뉴: {menu_list}!\n\n{explanation}"
     else:
         return "추천할 메뉴가 없네요. 다른 카테고리를 선택해보세요!"
 
