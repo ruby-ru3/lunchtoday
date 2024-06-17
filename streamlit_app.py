@@ -112,7 +112,7 @@ def recommend_menu(menus):
     if menus:
         recommendations = random.sample(menus, min(3, len(menus)))
         prompt = f"추천 점심 메뉴: {', '.join(recommendations)}!\n 이 메뉴는 어떠세요? 마음에 드는 점심을 골라 보세요! 😊"
-        response = menu_generator(prompt, max_length=100)[0]['generated_text']
+        response = menu_generator(prompt, max_length=300)[0]['generated_text']
         generated_sentence = response.replace(prompt, '').strip()
         filtered_sentence = next((sentence.strip() for sentence in generated_sentence.split('.') if any(menu in sentence for menu in recommendations)), "")
         return f"{prompt}\n\n{filtered_sentence}"
