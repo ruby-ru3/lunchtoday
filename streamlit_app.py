@@ -1,9 +1,13 @@
 import streamlit as st
 import random
-import wikipediaapi
+from transformers import pipeline
 
-# 위키백과 API 설정
-wiki_wiki = wikipediaapi.Wikipedia('ko')
+# GPT-2 모델 로드
+@st.cache_resource
+def load_model():
+    return pipeline('text-generation', model='gpt2')
+
+menu_generator = load_model()
 
 # 메뉴 카테고리
 menu_categories = {
@@ -107,34 +111,16 @@ filtered_menus = get_filtered_menus()
 def recommend_menu(menus):
     if menus:
         recommendations = random.sample(menus, min(3, len(menus)))
-        return recommendations
+        prompt = f"추천 점심 메뉴: {', '.join(recommendations)}!\n 이 메뉴는 어떠세요? 마음에 드는 점심을 골라 보세요! 😊"
+        return prompt
     else:
-        return []
-
-# 위키백과에서 설명 생성
-def generate_menu_description(recommendations):
-    descriptions = []
-    for menu in recommendations:
-        page = wiki_wiki.page(menu)
-        if page.exists():
-            description = page.summary[:100]  # 첫 100자를 요약으로 사용
-        else:
-            description = "설명을 찾을 수 없습니다."
-        descriptions.append(description)
-    return descriptions
+        return "추천할 메뉴가 없네요. 다른 카테고리를 선택해보세요!"
 
 # 추천 메뉴 출력
 if st.button("추천받기"):
     try:
-        recommendations = recommend_menu(filtered_menus)
-        if recommendations:
-            descriptions = generate_menu_description(recommendations)
-            st.write(f"점심 추천 메뉴: {', '.join(recommendations)}!")
-            st.write("이런 점심 메뉴는 어떠세요? 마음에 드는 점심을 골라보세요! 😊")
-            for menu, description in zip(recommendations, descriptions):
-                st.write(f"{menu}는 {description}입니다.")
-        else:
-            st.write("추천할 메뉴가 없네요. 다른 카테고리를 선택해보세요!")
+        recommendation = recommend_menu(filtered_menus)
+        st.write(recommendation)
     except Exception as e:
         st.error(f"추천 과정에서 문제가 발생했습니다. 잠시 후 다시 시도해주세요. 오류: {e}")
 
