@@ -111,7 +111,7 @@ filtered_menus = get_filtered_menus()
 def recommend_menu(menus):
     if menus:
         recommendations = random.sample(menus, min(3, len(menus)))
-        prompt = f"추천 점심 메뉴: {', '.join(recommendations)}\n이 메뉴는 어떠세요? 마음에 드는 점심을 골라 보세요! 😊"
+        prompt = f"추천 점심 메뉴: {', '.join(recommendations)}! 이 메뉴는 어떠세요? 마음에 드는 점심을 골라 보세요! 😊"
         response = menu_generator(prompt, max_new_tokens=100)[0]['generated_text']
         return f"{prompt}\n\n{response.replace(prompt, '')}"
     else:
