@@ -5,4 +5,4 @@ altair>=4.0
 transformers
 torch
 requests
-wikipedia-api
+wikipedia
