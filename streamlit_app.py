@@ -114,17 +114,22 @@ def recommend_menu(menus):
         menu_list = ', '.join(recommendations)
         prompt = f"추천 점심 메뉴: {menu_list}!\n각 메뉴에 대해 간단히 설명해주세요."
         
-        response = menu_generator(prompt, max_length=100)[0]['generated_text']
-        generated_sentence = response.replace(prompt, '').strip()
+        try:
+            response = menu_generator(prompt, max_length=150)[0]['generated_text']
+        except Exception as e:
+            return f"추천 점심 메뉴: {menu_list}!\n\n메뉴 설명을 가져오는 도중 오류가 발생했습니다. 다시 시도해주세요."
         
         # 추천된 메뉴와 관련된 문장을 필터링하여 반환
-        filtered_sentences = [sentence.strip() for sentence in generated_sentence.split('.') if any(menu in sentence for menu in recommendations)]
+        generated_sentences = [sentence.strip() for sentence in response.split('.') if any(menu in sentence for menu in recommendations)]
         
-        # 최종 출력 내용 구성
-        explanation = ' '.join(filtered_sentences)
-        return f"추천 점심 메뉴: {menu_list}!\n\n{explanation}"
+        if generated_sentences:
+            explanation = ' '.join(generated_sentences)
+            return f"추천 점심 메뉴: {menu_list}!\n\n{explanation}"
+        else:
+            return f"추천 점심 메뉴: {menu_list}!\n\n메뉴 설명이 없습니다."
     else:
         return "추천할 메뉴가 없네요. 다른 카테고리를 선택해보세요!"
+
 
 # 추천 메뉴 출력
 if st.button("추천받기"):
