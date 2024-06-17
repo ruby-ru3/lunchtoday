@@ -1,13 +1,9 @@
 import streamlit as st
 import random
-from transformers import pipeline
+import wikipediaapi
 
-# GPT-2 모델 로드
-@st.cache_resource
-def load_model():
-    return pipeline('text-generation', model='gpt2', tokenizer='gpt2')
-
-menu_generator = load_model()
+# 위키백과 API 설정
+wiki_wiki = wikipediaapi.Wikipedia('ko')
 
 # 메뉴 카테고리
 menu_categories = {
@@ -115,15 +111,15 @@ def recommend_menu(menus):
     else:
         return []
 
-# GPT-2를 이용한 설명 생성
+# 위키백과에서 설명 생성
 def generate_menu_description(recommendations):
     descriptions = []
     for menu in recommendations:
-        prompt = f"{menu}는 어떤 음식인가요?"
-        response = menu_generator(prompt, max_length=50, num_return_sequences=1, pad_token_id=50256)
-        description = response[0]['generated_text']
-        # 메뉴 이름 이후의 불필요한 텍스트 제거
-        description = description.replace(menu, "").strip()
+        page = wiki_wiki.page(menu)
+        if page.exists():
+            description = page.summary[:100]  # 첫 100자를 요약으로 사용
+        else:
+            description = "설명을 찾을 수 없습니다."
         descriptions.append(description)
     return descriptions
 
