@@ -138,7 +138,7 @@ if st.button("추천받기"):
             st.write("이 메뉴는 어떠세요? 마음에 드는 점심을 골라 보세요! 😊")
             for food in recommendations:
                 summary = get_wikipedia_summary(food)
-                st.write(f"**{food}**는 {summary}입니다.")
+                st.write(f"**{food}**는 '{summary}'입니다.")
         else:
             st.write("추천할 메뉴가 없네요. 다른 카테고리를 선택해보세요!")
     except Exception as e:
