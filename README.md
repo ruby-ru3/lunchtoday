@@ -1,6 +1,6 @@
 # 🍔 점심 추천 웹페이지
 ```
-⬆️ GitHub → streamlit 제작
+⬆️ [GitHub → streamlit 제작](https://lunchtoday.streamlit.app/)
 ```
 ## App Link
 
