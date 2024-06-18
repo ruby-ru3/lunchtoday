@@ -1,13 +1,10 @@
-# 📦 Streamlit App Starter Kit 
+# 🍔 점심 추천 웹페이지
 ```
-⬆️ (Replace above with your app's name)
+⬆️ GitHub → streamlit 제작
 ```
+## App Link
 
-Description of the app ...
-
-## Demo App
-
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://ml-model-builder-template.streamlit.app/)
+https://lunchtoday.streamlit.app/
 
 ## Section Heading
 
